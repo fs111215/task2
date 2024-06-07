@@ -13,6 +13,21 @@ FIN_ACK = 'FIN-ACK'
 class Client:
 
     def __init__(self, server_ip, server_port):
+        try:
+            socket.inet_aton(server_ip)  # Check if the IP address is valid
+        except socket.error:
+            print("Invalid IP address")
+            sys.exit(1)
+
+        try:
+            server_port = int(server_port)  # Attempt to convert port to integer
+            if not (0 < server_port < 65536):
+                print("Server port must be an integer between 1 and 65535")
+                sys.exit(1)
+        except ValueError:
+            print("Invalid port number")
+            sys.exit(1)
+
         self.server_ip = server_ip
         self.server_port = server_port
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -63,6 +78,7 @@ class Client:
         try:
             self.socket.settimeout(1)  # Wait up to 1 second for SYN-ACK
             response_packet, _ = self.socket.recvfrom(2048)
+
             seq_no, ver, server_time, content = struct.unpack('!Hc8s192s', response_packet)
             content = content.decode().strip('\x00')
             if content == SYN_ACK:
@@ -74,6 +90,9 @@ class Client:
         except socket.timeout:
             print("Connection establishment timed out.")
             return
+        except socket.error:
+            print("Connection Error")
+            sys.exit(1)
 
         # Send data requests
         while self.seq_no < 12:
